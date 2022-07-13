@@ -82,6 +82,8 @@ class aruco_track():
 
         self.centres_list = []
 
+        print(id_list)
+
         for i in range(len(corner_list)):
             corners = corner_list[i]
             id = id_list[i][0]
@@ -116,7 +118,6 @@ class aruco_track():
         vec_to_top = top_middle - centre
         cv2.line(self.frame_markers,(int(centre[0]),int(centre[1])),(int(top_middle[0]),int(top_middle[1])),(0,0,255),8)
         orientation = np.arctan2(vec_to_top[0],vec_to_top[1])
-        print(orientation)
         return orientation
 
     def calc_positions(self):

@@ -20,10 +20,9 @@ class forward_or_back():
                 rospy.sleep(1)
                 print("No robots")
             else:
-                pass
+                rospy.spin()
  
     def get_IDs(self,msg):
-        print("robot detected")
         self.IDs = msg.data.split() # split func creates a list of all the individual words and then converts them to an integers
         for one_ID in self.IDs:
             try :
