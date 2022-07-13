@@ -60,7 +60,7 @@ class aruco_track():
             self.detect_markers()
             self.calc_positions()
             self.publish_positions()
-            self.publish_IDs # changed so now it constantly publishes ID list
+            self.publish_IDs() # changed so now it constantly publishes ID list
             if cv2.waitKey(1) and  0xFF == ord("q"):
                 break
 
@@ -171,7 +171,7 @@ class aruco_track():
 
         self.identified_markers += str(ID) + " "
 
-        self.publish_IDs(ID)
+        self.publish_IDs()
 
         pub_name = "robot_" + str(ID) + "_position"
         self.pub_dict[ID] = rospy.Publisher(pub_name,Pose,queue_size=1) 
