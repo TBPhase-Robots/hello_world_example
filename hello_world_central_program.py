@@ -13,7 +13,7 @@ class forward_or_back():
         rospy.init_node("hello_world")
 
         self.robot_ID = rospy.Subscriber("/robot_IDs",String,callback=self.get_IDs)
-
+        self.robot_pub = rospy.Publisher("/vectors",Vector3,queue_size=10)
 
         while not rospy.is_shutdown():
             if not hasattr(self,'IDs'): # waits until at least a singular ID has been idenfied
@@ -41,6 +41,19 @@ class forward_or_back():
 
         self.robot_pos[ID] = [x,y,theta]
         print(self.robot_pos)
+
+    def robot_control(self):
+    # For the moment, the code will just check where the robot is and then say back or forward depending on what half it is in
+
+        for robot in self.IDs: # get each robots ID number
+            message = Vector3()
+            x_pos = self.robot_pos[robot][0] # gets the robots x position
+            if x_pos > 0:
+                message.x = -1
+            else:
+                message.x = 1
+
+            self.robot_pos.publish(message)
 
 if __name__ == "__main__":
     go = forward_or_back()

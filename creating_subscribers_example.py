@@ -4,6 +4,10 @@ import rospy2 as rospy
 from geometry_msgs.msg import Vector3, Pose
 from std_msgs.msg import String
 
+"""
+Example code of how to subscribe to the set of published topics of robot position using their IDs.
+"""
+
 class forward_or_back():
     def __init__(self):
 
