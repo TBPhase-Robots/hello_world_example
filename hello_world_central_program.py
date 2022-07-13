@@ -25,8 +25,11 @@ class forward_or_back():
     def get_IDs(self,msg):
         print("robot detected")
         self.IDs = msg.data.split() # split func creates a list of all the individual words and then converts them to an integers
-        new_ID = self.IDs[-1]
-        self.create_subscriber(new_ID)
+        for one_ID in self.IDs:
+            try :
+                self.robot_subs[one_ID] # checks all IDs are already in subscriber dictionary
+            except KeyError: # if they are not it will create a new subscriber
+                self.create_subscriber(one_ID)
 
     def create_subscriber(self,ID):
         tag = "/robot_" + str(ID) + "_position"
