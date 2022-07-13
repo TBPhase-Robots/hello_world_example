@@ -1,4 +1,6 @@
 import queue
+from re import L
+from urllib import robotparser
 import rospy2 as rospy
 
 from geometry_msgs.msg import Vector3, Pose
@@ -12,15 +14,22 @@ class forward_or_back():
 
         rospy.init_node("hello_world")
 
+        rospy.on_shutdown(self.shutdown)
+
         self.robot_ID = rospy.Subscriber("/robot_IDs",String,callback=self.get_IDs)
         self.robot_pub = rospy.Publisher("/vectors",Vector3,queue_size=10)
 
+
         while not rospy.is_shutdown():
-            if not hasattr(self,'IDs'): # waits until at least a singular ID has been idenfied
-                rospy.sleep(1)
-                print("No robots")
+            if hasattr(self,'IDs'): 
+                if len(self.IDs) == 0 or len(self.robot_pos) == 0: # waits until at least a singular bit of data has been recieved has been idenfied
+                    rospy.sleep(1)
+                    print("No robots")
+                else:
+                    self.robot_control()
             else:
-                rospy.spin()
+                pass
+
  
     def get_IDs(self,msg):
         self.IDs = msg.data.split() # split func creates a list of all the individual words and then converts them to an integers
@@ -40,20 +49,27 @@ class forward_or_back():
         theta = pos.orientation.z
 
         self.robot_pos[ID] = [x,y,theta]
-        print(self.robot_pos)
 
     def robot_control(self):
+        print(self.robot_pos)
     # For the moment, the code will just check where the robot is and then say back or forward depending on what half it is in
-
         for robot in self.IDs: # get each robots ID number
             message = Vector3()
             x_pos = self.robot_pos[robot][0] # gets the robots x position
+            speed = 20.0
             if x_pos > 0:
-                message.x = -1
+                message.x = speed
+                message.y = speed
             else:
-                message.x = 1
+                message.x = -speed
+                message.y = -speed
 
-            self.robot_pos.publish(message)
+            self.robot_pub.publish(message)
+
+    def shutdown(self):
+        message = Vector3()
+        message.x, message.y = 0,0
+        self.robot_pub.publish(message)
 
 if __name__ == "__main__":
     go = forward_or_back()

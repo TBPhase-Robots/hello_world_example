@@ -82,13 +82,11 @@ class aruco_track():
 
         self.centres_list = []
 
-        print(id_list)
+        self.active_ids = id_list
 
         for i in range(len(corner_list)):
             corners = corner_list[i]
             id = id_list[i][0]
-
-            print("\n\n")
 
             corners = corners[0] # there is double bracket, this is to get rid of one of those brackets
 
