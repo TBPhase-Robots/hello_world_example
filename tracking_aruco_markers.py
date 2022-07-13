@@ -192,6 +192,4 @@ def main():
 
 
 if __name__ == "__main__":
-    img = cv2.imread("ros_turtle.jpg")
-    cv2.imshow("image",img)
     main()

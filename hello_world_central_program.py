@@ -16,7 +16,7 @@ class forward_or_back():
 
 
         while not rospy.is_shutdown():
-            if not hasattr(self,'IDs'):
+            if not hasattr(self,'IDs'): # waits until at least a singular ID has been idenfied
                 rospy.sleep(1)
                 print("No robots")
             else:
