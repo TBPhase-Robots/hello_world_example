@@ -44,7 +44,7 @@ class aruco_track():
         self.vert_dist_ground = self.cam_height * np.tan(self.vert_cam_aperture)
 
         # set up camera for cv2
-        self.cam = cv2.VideoCapture(0)
+        self.cam = cv2.VideoCapture(2)
         self.cam.set(cv2.CAP_PROP_FRAME_WIDTH, 1920)
         self.cam.set(cv2.CAP_PROP_FRAME_HEIGHT, 1080)
 

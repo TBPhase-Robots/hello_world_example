@@ -1,6 +1,4 @@
 import queue
-from re import L
-from urllib import robotparser
 import rospy2 as rospy
 
 from geometry_msgs.msg import Vector3, Pose
@@ -51,7 +49,6 @@ class forward_or_back():
         self.robot_pos[ID] = [x,y,theta]
 
     def robot_control(self):
-        print(self.robot_pos)
     # For the moment, the code will just check where the robot is and then say back or forward depending on what half it is in
         for robot in self.IDs: # get each robots ID number
             message = Vector3()
