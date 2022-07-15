@@ -9,13 +9,14 @@ class forward_or_back():
 
         self.robot_subs = {}
         self.robot_pos = {}
+        self.robot_pubs = {}
 
         rospy.init_node("hello_world")
 
         rospy.on_shutdown(self.shutdown)
 
         self.robot_ID = rospy.Subscriber("/robot_IDs",String,callback=self.get_IDs)
-        self.robot_pub = rospy.Publisher("/vectors",Vector3,queue_size=10)
+        #self.robot_pub = rospy.Publisher("/vectors",Vector3,queue_size=10)
 
 
         while not rospy.is_shutdown():
@@ -41,6 +42,10 @@ class forward_or_back():
         tag = "/robot_" + str(ID) + "_position"
         self.robot_subs[ID] = rospy.Subscriber(tag,Pose,callback=self.position_callback,callback_args=ID)
 
+    def create_publisher(self,ID):
+        tag = "/robot" + str(ID) + "/vector"
+        self.robot_pubs[ID] = rospy.Publisher("tag", Vector3, queue_size=10)
+
     def position_callback(self,pos,ID):
         x = pos.position.x
         y = pos.position.y
@@ -61,7 +66,11 @@ class forward_or_back():
                 message.x = -speed
                 message.y = -speed
 
-            self.robot_pub.publish(message)
+            try:
+                self.robot_pubs[robot].publish(message)
+            except KeyError:
+                self.create_publisher(robot)
+                self.robot_pubs[robot].publish(message)
 
     def shutdown(self):
         message = Vector3()
