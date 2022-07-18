@@ -4,6 +4,8 @@ import rospy2 as rospy
 from geometry_msgs.msg import Vector3, Pose
 from std_msgs.msg import String
 
+import numpy as np
+
 class forward_or_back():
     def __init__(self):
 
@@ -56,15 +58,24 @@ class forward_or_back():
     def robot_control(self):
     # For the moment, the code will just check where the robot is and then say back or forward depending on what half it is in
         for robot in self.IDs: # get each robots ID number
+
             message = Vector3()
-            x_pos = self.robot_pos[robot][0] # gets the robots x position
-            speed = 20.0
-            if x_pos > 0:
-                message.x = speed
-                message.y = speed
-            else:
-                message.x = -speed
-                message.y = -speed
+            x_pos = self.robot_pos[robot][0]
+            y_pos = self.robot_pos[robot][1] # gets the robots x and y position
+            theta_pos = self.robot_pos[robot][3]
+
+            # this is where to add that robots command
+            eg_command = -[x_pos,y_pos]
+            vector = eg_command
+
+            # coordinates must be transformed into the robots frame: use rotation matrix
+
+            rot_mat = np.array([[np.cos(theta_pos),-np.sin(theta_pos)],[np.sin(theta_pos),np.cos(theta_pos)]])
+
+            new_vec = np.matmul(rot_mat,vector)
+
+            message.x = new_vec[0]
+            message.y = new_vec[1]
 
             try:
                 self.robot_pubs[robot].publish(message)
