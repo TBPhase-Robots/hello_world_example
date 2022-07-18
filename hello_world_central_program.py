@@ -1,8 +1,9 @@
 import queue
+from bs4 import Tag
 import rospy2 as rospy
 
 from geometry_msgs.msg import Vector3, Pose
-from std_msgs.msg import String
+from std_msgs.msg import String, Int32
 
 import numpy as np
 
@@ -12,28 +13,27 @@ class forward_or_back():
         self.robot_subs = {}
         self.robot_pos = {}
         self.robot_pubs = {}
+        self.IDs = []
 
         rospy.init_node("hello_world")
 
         rospy.on_shutdown(self.shutdown)
 
-        self.robot_ID = rospy.Subscriber("/robot_IDs",String,callback=self.get_IDs)
+        self.robot_ID = rospy.Subscriber("/global/robots/added",Int32,callback=self.get_IDs)
         #self.robot_pub = rospy.Publisher("/vectors",Vector3,queue_size=10)
 
 
         while not rospy.is_shutdown():
-            if hasattr(self,'IDs'): 
-                if len(self.IDs) == 0 or len(self.robot_pos) == 0: # waits until at least a singular bit of data has been recieved has been idenfied
-                    rospy.sleep(1)
-                    print("No robots")
-                else:
-                    self.robot_control()
+            if len(self.IDs) == 0:
+                print("No ids recieved")
+            elif len(self.robot_pos) == 0: # waits until at least a singular bit of data has been recieved has been idenfied
+                print("No robots")
             else:
-                pass
+                self.robot_control()
 
  
     def get_IDs(self,msg):
-        self.IDs = msg.data.split() # split func creates a list of all the individual words and then converts them to an integers
+        self.IDs.append(msg.data)
         for one_ID in self.IDs:
             try :
                 self.robot_subs[one_ID] # checks all IDs are already in subscriber dictionary
@@ -41,12 +41,12 @@ class forward_or_back():
                 self.create_subscriber(one_ID)
 
     def create_subscriber(self,ID):
-        tag = "/robot_" + str(ID) + "_position"
+        tag = "/robot" + str(ID) + "/pose"
         self.robot_subs[ID] = rospy.Subscriber(tag,Pose,callback=self.position_callback,callback_args=ID)
 
     def create_publisher(self,ID):
-        tag = "/robot" + str(ID) + "/vector"
-        self.robot_pubs[ID] = rospy.Publisher("tag", Vector3, queue_size=10)
+        tag = "/robot" + str(ID) + "/vectors"
+        self.robot_pubs[ID] = rospy.Publisher(tag, Vector3, queue_size=10)
 
     def position_callback(self,pos,ID):
         x = pos.position.x
@@ -55,6 +55,8 @@ class forward_or_back():
 
         self.robot_pos[ID] = [x,y,theta]
 
+        print(self.robot_pos)
+
     def robot_control(self):
     # For the moment, the code will just check where the robot is and then say back or forward depending on what half it is in
         for robot in self.IDs: # get each robots ID number
@@ -62,10 +64,10 @@ class forward_or_back():
             message = Vector3()
             x_pos = self.robot_pos[robot][0]
             y_pos = self.robot_pos[robot][1] # gets the robots x and y position
-            theta_pos = self.robot_pos[robot][3]
+            theta_pos = self.robot_pos[robot][2]
 
             # this is where to add that robots command
-            eg_command = -[x_pos,y_pos]
+            eg_command = [-x_pos,-y_pos]
             vector = eg_command
 
             # coordinates must be transformed into the robots frame: use rotation matrix

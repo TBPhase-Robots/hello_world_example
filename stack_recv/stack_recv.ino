@@ -114,11 +114,11 @@ void vector_callback(const void * msgin)
 
   //  Converts message to a string
   char s[32];
-  sprintf(s, "Received: %f\0", msg->x);
+  //sprintf(s, "Received: %f\0", msg->x);
 
   //  Prints message to the screen
-  M5.lcd.clear();
-  M5.lcd.drawString(s, 0, 0);
+  //M5.lcd.clear();
+  //M5.lcd.drawString(s, 0, 0);
 
   //  Converts message to i2c_status
   i2c_status_tx.x = msg->x;
@@ -154,7 +154,7 @@ void id_callback(const void * msgin) {
   id = msg->data;
 
   char s[32];
-  sprintf(s, "Received id: %d", id);
+  //sprintf(s, "Received id: %d", id);
   Serial.println(s);
 }
 
