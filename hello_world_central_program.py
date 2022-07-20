@@ -72,12 +72,16 @@ class forward_or_back():
 
             # coordinates must be transformed into the robots frame: use rotation matrix
 
-            rot_mat = np.array([[np.cos(theta_pos),-np.sin(theta_pos)],[np.sin(theta_pos),np.cos(theta_pos)]])
+            theta = theta_pos
 
-            new_vec = np.matmul(rot_mat,vector)
+            rot_mat = np.array([[np.cos(theta),-np.sin(theta)],[np.sin(theta),np.cos(theta)]])
+
+            new_vec = np.matmul(rot_mat,vector) # this should be 
 
             message.x = new_vec[0]
             message.y = new_vec[1]
+
+            print(new_vec)
 
             try:
                 self.robot_pubs[robot].publish(message)
