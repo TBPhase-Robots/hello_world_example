@@ -11,6 +11,9 @@ from cv2 import aruco
 import numpy as np
 import time
 
+import os
+import pickle
+
 import rospy2 as rospy
 from geometry_msgs.msg import Pose
 from std_msgs.msg import String
@@ -18,6 +21,16 @@ from std_msgs.msg import String
 class aruco_track():
 
     def __init__(self):
+        if not os.path.exists('./CameraCalibration.pckl'):
+            print("Calibration file not found.")
+            exit()
+        else:
+            f = open('./CameraCalibration.pckl', 'rb')
+            self.cameraMatrix, self.distCoeffs, _, _ = pickle.load(f)
+            f.close()
+            if self.cameraMatrix is None or self.distCoeffs is None:
+                print("Invalid calibration file.")
+                exit()
 
         # initiate ros parts
         rospy.init_node("camera_tracker")
@@ -44,7 +57,8 @@ class aruco_track():
         self.vert_dist_ground = self.cam_height * np.tan(self.vert_cam_aperture)
 
         # set up camera for cv2
-        self.cam = cv2.VideoCapture(2)
+        self.cam = cv2.VideoCapture(0)
+        self.cam.set(cv2.CAP_PROP_AUTOFOCUS, 0)
         self.cam.set(cv2.CAP_PROP_FRAME_WIDTH, 1920)
         self.cam.set(cv2.CAP_PROP_FRAME_HEIGHT, 1080)
 
@@ -78,34 +92,40 @@ class aruco_track():
 
     def detect_markers(self):
         corner_list, id_list, rejectedImgPoints = aruco.detectMarkers(self.grey, self.aruco_dict, parameters=self.parameters)
-        self.frame_markers = aruco.drawDetectedMarkers(self.frame.copy(), corner_list, id_list)
+        # self.frame_markers = aruco.drawDetectedMarkers(self.frame.copy(), corner_list, id_list)
+        self.frame_markers = self.frame.copy()
 
         self.centres_list = []
 
         self.active_ids = id_list
 
-        for i in range(len(corner_list)):
-            corners = corner_list[i]
-            id = id_list[i][0]
+        if len(corner_list) > 0:
+            rotation_vectors, translation_vectors, _objPoints = aruco.estimatePoseSingleMarkers(corner_list, 24/1000, self.cameraMatrix, self.distCoeffs)
 
-            corners = corners[0] # there is double bracket, this is to get rid of one of those brackets
+            for i in range(len(corner_list)):
+                corners = corner_list[i]
+                id = id_list[i][0]
 
-            x_tot = 0
-            y_tot = 0
+                corners = corners[0] # there is double bracket, this is to get rid of one of those brackets
 
-            for corner in corners:
-                x_tot += corner[0]
-                y_tot += corner[1]
+                x_tot = 0
+                y_tot = 0
 
-            middle = np.array([x_tot/4,y_tot/4])
+                for corner in corners:
+                    x_tot += corner[0]
+                    y_tot += corner[1]
 
-            orientation = self.calculate_orientation(middle,corners[0],corners[1])
+                middle = np.array([x_tot/4,y_tot/4])
 
-            centre = [id,int(x_tot/4),int(y_tot/4),orientation]
+                orientation = self.calculate_orientation(middle,corners[0],corners[1])
 
-            self.centres_list.append(centre)
+                centre = [id,int(x_tot/4),int(y_tot/4),orientation]
 
-            cv2.circle(self.frame_markers,(centre[1],centre[2]),5,(255,0,0),2) # plots a circle in the middle of the marker 
+                self.centres_list.append(centre)
+
+                # cv2.circle(self.frame_markers,(centre[1],centre[2]),5,(255,0,0),2) # plots a circle in the middle of the marker 
+                # cv2.circle(self.frame_markers,(centre[1],centre[2]),5,(255,0,0),2) # plots a circle in the middle of the marker 
+                cv2.drawFrameAxes(self.frame_markers, self.cameraMatrix, self.distCoeffs, rotation_vectors[i], translation_vectors[i] + [0, 0, 0], 0.01)
 
 
         cv2.imshow("markers",self.frame_markers)
@@ -114,7 +134,7 @@ class aruco_track():
     def calculate_orientation(self,centre,top_left,top_right):
         top_middle = (top_right + top_left) / 2
         vec_to_top = top_middle - centre
-        cv2.line(self.frame_markers,(int(centre[0]),int(centre[1])),(int(top_middle[0]),int(top_middle[1])),(0,0,255),8)
+        # cv2.line(self.frame_markers,(int(centre[0]),int(centre[1])),(int(top_middle[0]),int(top_middle[1])),(0,0,255),8)
         orientation = np.arctan2(vec_to_top[0],vec_to_top[1])
         return orientation
 
