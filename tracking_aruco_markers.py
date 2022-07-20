@@ -103,29 +103,35 @@ class aruco_track():
             rotation_vectors, translation_vectors, _objPoints = aruco.estimatePoseSingleMarkers(corner_list, 24/1000, self.cameraMatrix, self.distCoeffs)
 
             for i in range(len(corner_list)):
-                corners = corner_list[i]
+                # corners = corner_list[i]
                 id = id_list[i][0]
 
-                corners = corners[0] # there is double bracket, this is to get rid of one of those brackets
+                # corners = corners[0] # there is double bracket, this is to get rid of one of those brackets
 
-                x_tot = 0
-                y_tot = 0
+                # x_tot = 0
+                # y_tot = 0
 
-                for corner in corners:
-                    x_tot += corner[0]
-                    y_tot += corner[1]
+                # for corner in corners:
+                #     x_tot += corner[0]
+                #     y_tot += corner[1]
 
-                middle = np.array([x_tot/4,y_tot/4])
+                # middle = np.array([x_tot/4,y_tot/4])
 
-                orientation = self.calculate_orientation(middle,corners[0],corners[1])
+                x = translation_vectors[i][0][0]
+                y = translation_vectors[i][0][1]
+                orientation = rotation_vectors[i][0][1]
 
-                centre = [id,int(x_tot/4),int(y_tot/4),orientation]
+                # orientation = self.calculate_orientation(middle,corners[0],corners[1])
+
+                # centre = [id,int(x_tot/4),int(y_tot/4),orientation]
+                centre = [id, x, y, orientation]
 
                 self.centres_list.append(centre)
 
                 # cv2.circle(self.frame_markers,(centre[1],centre[2]),5,(255,0,0),2) # plots a circle in the middle of the marker 
                 # cv2.circle(self.frame_markers,(centre[1],centre[2]),5,(255,0,0),2) # plots a circle in the middle of the marker 
-                cv2.drawFrameAxes(self.frame_markers, self.cameraMatrix, self.distCoeffs, rotation_vectors[i], translation_vectors[i] + [0, 0, 0], 0.01)
+                print(translation_vectors[i])
+                cv2.drawFrameAxes(self.frame_markers, self.cameraMatrix, self.distCoeffs, rotation_vectors[i], translation_vectors[i], 0.01)
 
 
         cv2.imshow("markers",self.frame_markers)
@@ -148,22 +154,22 @@ class aruco_track():
 
         """
 
-        self.vectors_to_robots = []
+        self.vectors_to_robots = self.centres_list
 
-        for centre in self.centres_list: ## BUGFIX: WHEN ONLY ONE ROBOT, WILL CYCLE THROUGH SCALAR VALUES
-            # method of working it out from the centre of the image means the vector is relative to directly below the camera
+        # for centre in self.centres_list: ## BUGFIX: WHEN ONLY ONE ROBOT, WILL CYCLE THROUGH SCALAR VALUES
+        #     # method of working it out from the centre of the image means the vector is relative to directly below the camera
 
-            vert_pixels_from_centre = centre[1] - (self.vert_res/2)
-            horiz_pixels_from_centre = centre[2] - (self.horiz_res/2)
+        #     vert_pixels_from_centre = centre[1] - (self.vert_res/2)
+        #     horiz_pixels_from_centre = centre[2] - (self.horiz_res/2)
 
-            #print(vert_pixels_from_centre, horiz_pixels_from_centre)
+        #     #print(vert_pixels_from_centre, horiz_pixels_from_centre)
 
-            vert_pos = vert_pixels_from_centre / (self.vert_res/2) * (self.vert_dist_ground/2)
-            horiz_pos = horiz_pixels_from_centre / (self.horiz_res/2) * (self.horiz_dist_ground/2)
+        #     vert_pos = vert_pixels_from_centre / (self.vert_res/2) * (self.vert_dist_ground/2)
+        #     horiz_pos = horiz_pixels_from_centre / (self.horiz_res/2) * (self.horiz_dist_ground/2)
 
-            vector_pos = [centre[0],horiz_pos,vert_pos,centre[3]]
+        #     vector_pos = [centre[0],horiz_pos,vert_pos,centre[3]]
 
-            self.vectors_to_robots.append(vector_pos)
+        #     self.vectors_to_robots.append(vector_pos)
  
     def publish_positions(self):
 
