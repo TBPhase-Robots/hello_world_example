@@ -59,8 +59,11 @@ class aruco_track():
         # set up camera for cv2
         self.cam = cv2.VideoCapture(0)
         self.cam.set(cv2.CAP_PROP_AUTOFOCUS, 0)
+        self.cam.set(cv2.CAP_PROP_AUTO_EXPOSURE, 1)
+        self.cam.set(cv2.CAP_PROP_EXPOSURE, 50)
         self.cam.set(cv2.CAP_PROP_FRAME_WIDTH, 1920)
         self.cam.set(cv2.CAP_PROP_FRAME_HEIGHT, 1080)
+        self.cam.set(cv2.CAP_PROP_FPS, 60)
 
         # set up ArUco settings and parameters
         self.aruco_dict = aruco.Dictionary_get(aruco.DICT_6X6_250)
