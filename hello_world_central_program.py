@@ -59,20 +59,25 @@ class forward_or_back(Node):
         self.robot_ID_subscription = self.create_subscription(Int32, "/global/robots/added", self.get_IDs, 10)
         #self.robot_pub = rospy.Publisher("/vectors",Vector3,queue_size=10)
 
-
         # while not rospy.is_shutdown():
-        while True:
+        while rclpy.ok():
             rclpy.spin_once(self, timeout_sec=0.2)
+
+            print(len(self.robots))
 
             if len(self.robots) == 0:
                 print("No ids recieved")
             # elif len(self.robot_pos) == 0: # waits until at least a singular bit of data has been recieved has been idenfied
             #     print("No robots")
             else:
+                print("Entering robot control")
                 self.robot_control()
 
  
     def get_IDs(self,msg):
+
+        print("Recieved ID: ", msg.data)
+        
         new_robot = Robot()
         new_robot.id = msg.data
 
