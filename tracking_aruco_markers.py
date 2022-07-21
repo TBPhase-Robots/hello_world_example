@@ -14,13 +14,13 @@ import time
 import os
 import pickle
 
-import rclpy
+import rospy2 as rospy
 from geometry_msgs.msg import Pose
 from std_msgs.msg import String
 
 class aruco_track():
 
-    def __init__(self,args=None):
+    def __init__(self):
         if not os.path.exists('./CameraCalibration.pckl'):
             print("Calibration file not found.")
             exit()
@@ -32,10 +32,8 @@ class aruco_track():
                 print("Invalid calibration file.")
                 exit()
 
-        rclpy.init(args=args)
-
         # initiate ros parts
-        self.node = rclpy.create_node("camera_tracker")
+        rospy.init_node("camera_tracker")
 
         # make a topic for every robot (?) or potentially one topic for all robots
         # normally would use a geometry pose message, however these robots move in a 2D plane simplified turtlesim message...
@@ -43,6 +41,8 @@ class aruco_track():
 
         # as ArUco tags have IDs, the publisher objects are stored in a dictionary with their ID as the key
         self.pub_dict = {}
+
+        rospy.on_shutdown(self.shutdown)
 
         # imput camera values
         # used later to convert the position in the image to the functions
@@ -202,7 +202,7 @@ class aruco_track():
         self.publish_IDs()
 
         pub_name = "robot_" + str(ID) + "_position"
-        self.pub_dict[ID] = self.node.create_publisher(pub_name,Pose,queue_size=1) 
+        self.pub_dict[ID] = rospy.Publisher(pub_name,Pose,queue_size=1) 
 
     def publish_IDs(self):
 
