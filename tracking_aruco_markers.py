@@ -70,7 +70,7 @@ class aruco_track():
         self.parameters =  aruco.DetectorParameters_create()
 
         self.identified_markers = "" # will send a string of the markers that have been identified so that them
-        self.ID_pub = rospy.Publisher("/robot_IDs",String,queue_size=1)
+        self.ID_pub = self.node.create_publisher(String,"/robot_IDs",queue_size=1)
 
         while True: # would normally use a while rospy not shutdown, but caused opencv to crash
             self.get_image()
@@ -202,7 +202,7 @@ class aruco_track():
         self.publish_IDs()
 
         pub_name = "robot_" + str(ID) + "_position"
-        self.pub_dict[ID] = self.node.create_publisher(pub_name,Pose,queue_size=1) 
+        self.pub_dict[ID] = self.node.create_publisher(Pose,pub_name,queue_size=1,qos_profile=10) 
 
     def publish_IDs(self):
 

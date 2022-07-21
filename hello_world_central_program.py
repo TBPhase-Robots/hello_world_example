@@ -20,7 +20,7 @@ class forward_or_back():
         self.node = rclpy.create_node("hello_world")
         rate = self.node.create_rate(2)
 
-        self.robot_ID = self.node.create_subscription("/global/robots/added",Int32,callback=self.get_IDs)
+        self.robot_ID = self.node.create_subscription(Int32,"/global/robots/added",callback=self.get_IDs,qos_profile=10)
 
         while rclpy.ok():
             if len(self.IDs) == 0:
@@ -43,11 +43,11 @@ class forward_or_back():
 
     def create_subscriber(self,ID):
         tag = "/robot" + str(ID) + "/pose"
-        self.robot_subs[ID] = self.node.create_subscription(tag,Pose,callback=self.position_callback,callback_args=ID)
+        self.robot_subs[ID] = self.node.create_subscription(Pose,tag,callback=self.position_callback,callback_args=ID,qos_profile=10)
 
     def create_publisher(self,ID):
         tag = "/robot" + str(ID) + "/vectors"
-        self.robot_pubs[ID] = self.node.create_publisher(tag, Vector3, queue_size=10)
+        self.robot_pubs[ID] = self.node.create_publisher(Vector3, tag, queue_size=10,qos_profile=10)
 
     def position_callback(self,pos,ID):
         x = pos.position.x
