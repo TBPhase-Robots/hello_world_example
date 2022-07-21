@@ -1,6 +1,6 @@
 import queue
 from bs4 import Tag
-import rospy2 as rospy
+import rclpy
 
 from geometry_msgs.msg import Vector3, Pose
 from std_msgs.msg import String, Int32
@@ -8,26 +8,27 @@ from std_msgs.msg import String, Int32
 import numpy as np
 
 class forward_or_back():
-    def __init__(self):
+    def __init__(self,args=None):
 
         self.robot_subs = {}
         self.robot_pos = {}
         self.robot_pubs = {}
         self.IDs = []
 
-        rospy.init_node("hello_world")
+        rclpy.init(args=args)
 
-        rospy.on_shutdown(self.shutdown)
+        self.node = rclpy.create_node("hello_world")
+        rate = self.node.create_rate(2)
 
-        self.robot_ID = rospy.Subscriber("/global/robots/added",Int32,callback=self.get_IDs)
-        #self.robot_pub = rospy.Publisher("/vectors",Vector3,queue_size=10)
+        self.robot_ID = self.node.create_subscription("/global/robots/added",Int32,callback=self.get_IDs)
 
-
-        while not rospy.is_shutdown():
+        while rclpy.ok():
             if len(self.IDs) == 0:
                 print("No ids recieved")
+
             elif len(self.robot_pos) == 0: # waits until at least a singular bit of data has been recieved has been idenfied
                 print("No robots")
+
             else:
                 self.robot_control()
 
@@ -42,11 +43,11 @@ class forward_or_back():
 
     def create_subscriber(self,ID):
         tag = "/robot" + str(ID) + "/pose"
-        self.robot_subs[ID] = rospy.Subscriber(tag,Pose,callback=self.position_callback,callback_args=ID)
+        self.robot_subs[ID] = self.node.create_subscription(tag,Pose,callback=self.position_callback,callback_args=ID)
 
     def create_publisher(self,ID):
         tag = "/robot" + str(ID) + "/vectors"
-        self.robot_pubs[ID] = rospy.Publisher(tag, Vector3, queue_size=10)
+        self.robot_pubs[ID] = self.node.create_publisher(tag, Vector3, queue_size=10)
 
     def position_callback(self,pos,ID):
         x = pos.position.x
@@ -76,7 +77,7 @@ class forward_or_back():
 
             rot_mat = np.array([[np.cos(theta),-np.sin(theta)],[np.sin(theta),np.cos(theta)]])
 
-            new_vec = np.matmul(rot_mat,vector) # this should be 
+            new_vec = np.matmul(rot_mat,vector) # this should rotate in
 
             message.x = new_vec[0]
             message.y = new_vec[1]
