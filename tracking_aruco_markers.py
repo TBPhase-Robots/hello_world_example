@@ -152,9 +152,7 @@ class aruco_track():
         """
         Aim of function: take a list of circle centres from the circle detection, and then calculate their position in real space using
         the info we know about the position of the camera and its resolution and aperture angle etc.
-
         The estimation may require a fair amount of tuning
-
         """
 
         self.vectors_to_robots = self.centres_list

@@ -66,11 +66,9 @@ class forward_or_back(Node):
             print(len(self.robots))
 
             if len(self.robots) == 0:
-                print("No ids recieved")
             # elif len(self.robot_pos) == 0: # waits until at least a singular bit of data has been recieved has been idenfied
             #     print("No robots")
             else:
-                print("Entering robot control")
                 self.robot_control()
 
  
