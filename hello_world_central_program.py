@@ -38,7 +38,6 @@ class Robot():
         self.position.y = y
         self.position.theta = theta
 
-        print(x, y, theta)
 
 class forward_or_back(Node):
     robots: List[Robot] = []
@@ -63,11 +62,9 @@ class forward_or_back(Node):
         while rclpy.ok():
             rclpy.spin_once(self, timeout_sec=0.2)
 
-            print(len(self.robots))
-
             if len(self.robots) == 0:
             # elif len(self.robot_pos) == 0: # waits until at least a singular bit of data has been recieved has been idenfied
-            #     print("No robots")
+                 print("No robots")
             else:
                 self.robot_control()
 
@@ -118,6 +115,8 @@ class forward_or_back(Node):
 
             # new_vec = np.matmul(rot_mat,vector) # this should be 
 
+
+
             message.x = robot.position.x
             message.y = robot.position.y
             message.z = robot.position.theta
@@ -127,6 +126,8 @@ class forward_or_back(Node):
             # print(new_vec)
 
             # try:
+            # if(not message.x == 0.0):
+            print(message.x, message.y, message.z)
             robot.publisher.publish(message)
             # except KeyError:
             #     self.new_publisher(robot)
