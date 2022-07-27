@@ -11,16 +11,29 @@ from cv2 import aruco
 import numpy as np
 import time
 
+
 import os
 import pickle
+# import rospy2 as rospy
 
-import rospy2 as rospy
+import rclpy
+from rclpy.node import Node
+from rclpy.publisher import Publisher
+from rclpy.subscription import Subscription
 from geometry_msgs.msg import Pose
+from geometry_msgs.msg import Vector3
+from std_msgs.msg import Int32
 from std_msgs.msg import String
 
-class aruco_track():
+class ArucoTrack(Node):
+
+    origin: Vector3 = Vector3()
 
     def __init__(self):
+
+        # initiate ros parts
+        super().__init__(node_name="camera_tracker")
+
         if not os.path.exists('./CameraCalibration.pckl'):
             print("Calibration file not found.")
             exit()
@@ -32,9 +45,6 @@ class aruco_track():
                 print("Invalid calibration file.")
                 exit()
 
-        # initiate ros parts
-        rospy.init_node("camera_tracker")
-
         # make a topic for every robot (?) or potentially one topic for all robots
         # normally would use a geometry pose message, however these robots move in a 2D plane simplified turtlesim message...
         # ... the need for quarternion to euler transform.
@@ -42,7 +52,7 @@ class aruco_track():
         # as ArUco tags have IDs, the publisher objects are stored in a dictionary with their ID as the key
         self.pub_dict = {}
 
-        rospy.on_shutdown(self.shutdown)
+        # rclpy.Context.on_shutdown(super().context, self.shutdown_callback)
 
         # imput camera values
         # used later to convert the position in the image to the functions
@@ -67,17 +77,21 @@ class aruco_track():
 
         # set up ArUco settings and parameters
         self.aruco_dict = aruco.Dictionary_get(aruco.DICT_6X6_250)
-        self.parameters =  aruco.DetectorParameters_create()
+        self.parameters = aruco.DetectorParameters_create()
 
-        self.identified_markers = "" # will send a string of the markers that have been identified so that them
-        self.ID_pub = rospy.Publisher("/robot_IDs",String,queue_size=1)
+        self.active_robots = [] # will send a string of the markers that have been identified so that them
+        # self.ID_pub = rospy.Publisher("/robot_IDs",String,queue_size=1)
+        self.added_robot_subscriber = self.create_subscription(Int32, "/global/robots/added", self.added_robot_callback, 10)
+        self.removed_robot_subscriber = self.create_subscription(Int32, "/global/robots/removed", self.removed_robot_callback, 10)
+        self.origin_subscriber = self.create_subscription(Vector3, "/global/origin", self.origin_callback, 10)
 
         while True: # would normally use a while rospy not shutdown, but caused opencv to crash
+            rclpy.spin_once(self, timeout_sec=0)
+
             self.get_image()
             self.detect_markers()
             self.calc_positions()
             self.publish_positions()
-            self.publish_IDs() # changed so now it constantly publishes ID list
             if cv2.waitKey(1) and  0xFF == ord("q"):
                 break
 
@@ -85,6 +99,7 @@ class aruco_track():
 
         cv2.destroyAllWindows()
 
+    # def added_robot_callback(self,)
 
     def get_image(self): # retrieves the image from the webcam
 
@@ -127,16 +142,33 @@ class aruco_track():
                 # orientation = self.calculate_orientation(middle,corners[0],corners[1])
 
                 # centre = [id,int(x_tot/4),int(y_tot/4),orientation]
-                centre = [id, x, y, orientation]
 
+
+                # cv2.circle(self.frame_markers,(centre[1],centre[2]),5,(255,0,0),2) # plots a circle in the middle of the marker 
+                # cv2.circle(self.frame_markers,(centre[1],centre[2]),5,(255,0,0),2) # plots a circle in the middle of the marker 
+                rotation_matrix = np.identity(3)
+                cv2.Rodrigues(rotation_vectors[i], rotation_matrix)
+                # print(rotation_matrix)
+
+                theta_1 = np.arctan2(rotation_matrix[2, 1], rotation_matrix[2, 2])
+                s_1 = np.sin(theta_1)
+                c_1 = np.cos(theta_1)
+                theta_3 = np.arctan2(s_1 * rotation_matrix[2, 0] - c_1 * rotation_matrix[1, 0], c_1 * rotation_matrix[1, 1] - s_1 * rotation_matrix[2, 1])
+
+                orientation = -theta_3
+
+                centre = [id, x - self.origin.x, y - self.origin.y, orientation]
                 self.centres_list.append(centre)
 
-                # cv2.circle(self.frame_markers,(centre[1],centre[2]),5,(255,0,0),2) # plots a circle in the middle of the marker 
-                # cv2.circle(self.frame_markers,(centre[1],centre[2]),5,(255,0,0),2) # plots a circle in the middle of the marker 
-                print(translation_vectors[i])
                 cv2.drawFrameAxes(self.frame_markers, self.cameraMatrix, self.distCoeffs, rotation_vectors[i], translation_vectors[i], 0.01)
 
 
+        rod_identity = np.zeros((1, 3))
+        cv2.Rodrigues(np.identity(3), rod_identity)
+
+        origin_array = np.array([[self.origin.x, self.origin.y, self.origin.z]])
+
+        cv2.drawFrameAxes(self.frame_markers, self.cameraMatrix, self.distCoeffs, rod_identity, origin_array, 0.01)
         cv2.imshow("markers",self.frame_markers)
 
             
@@ -146,6 +178,14 @@ class aruco_track():
         # cv2.line(self.frame_markers,(int(centre[0]),int(centre[1])),(int(top_middle[0]),int(top_middle[1])),(0,0,255),8)
         orientation = np.arctan2(vec_to_top[0],vec_to_top[1])
         return orientation
+
+    def added_robot_callback(self, msg: Int32):
+        print(f'new robot: {msg.data}')
+        self.active_robots.append(msg.data)
+        self.create_robot(msg.data)
+
+    def removed_robot_callback(self, msg: Int32):
+        self.active_robots.remove(msg.data)
 
     def calc_positions(self):
 
@@ -165,12 +205,12 @@ class aruco_track():
         #     vert_pixels_from_centre = centre[1] - (self.vert_res/2)
         #     horiz_pixels_from_centre = centre[2] - (self.horiz_res/2)
 
-        #     #print(vert_pixels_from_centre, horiz_pixels_from_centre)
+        #     print(vert_pixels_from_centre, horiz_pixels_from_centre)
 
         #     vert_pos = vert_pixels_from_centre / (self.vert_res/2) * (self.vert_dist_ground/2)
         #     horiz_pos = horiz_pixels_from_centre / (self.horiz_res/2) * (self.horiz_dist_ground/2)
 
-        #     vector_pos = [centre[0],horiz_pos,vert_pos,centre[3]]
+        #     vector_pos = [centre[0],horiz_pos,vert_pos, centre[3]]
 
         #     self.vectors_to_robots.append(vector_pos)
  
@@ -181,38 +221,35 @@ class aruco_track():
             positions = Pose()
 
             positions.position.x = -pos[2] # could potentially be an earlier maths error, but just this works
-            positions.position.y = pos[1]
-
+            positions.position.y = -pos[1]
             positions.orientation.z = pos[3]
+
+            # print(pos[0])
 
             try: # see if there is a publishable node for that ID number
                 self.pub_dict[pos[0]].publish(positions)
 
             except KeyError : # if the key doesn't exist than a new publisher with that key is created.
-                self.create_publisher(pos[0])
-                self.pub_dict[pos[0]].publish(positions)
+                print(f'No publisher for robot{pos[0]}')
             
-    def create_publisher(self,ID):
+    def create_robot(self,ID):
         """
         As the Aruco gives an ID number, a dictionary containing all the publishing objects is created, with each robots publisher as the key
         """
 
-        self.identified_markers += str(ID) + " "
+        # self.identified_markers += str(ID) + " "
 
-        self.publish_IDs()
+        # ID_msg = String()
 
-        pub_name = "robot_" + str(ID) + "_position"
-        self.pub_dict[ID] = rospy.Publisher(pub_name,Pose,queue_size=1) 
+        # ID_msg.data = self.identified_markers
 
-    def publish_IDs(self):
+        # self.ID_pub.publish(ID_msg)
 
-        ID_msg = String()
+        pub_name = f"/robot{ID}/pose"
+        self.pub_dict[ID] = self.create_publisher(Pose, pub_name, 10)
+        # self.pub_dict[ID] = rospy.Publisher(pub_name,Pose,queue_size=1) 
 
-        ID_msg.data = self.identified_markers
-
-        self.ID_pub.publish(ID_msg)
-
-    def shutdown(self):
+    def shutdown_callback(self):
 
         print("shutdown")
 
@@ -220,9 +257,18 @@ class aruco_track():
 
         cv2.destroyAllWindows()
 
-def main():
-    aruco_tacker = aruco_track()
+    def origin_callback(self, msg: Vector3):
+        self.origin = msg
 
+def main():
+    rclpy.init()
+
+    aruco_tacker = ArucoTrack()
+    
+    rclpy.spin(aruco_tacker)
+    rclpy.shutdown()
 
 if __name__ == "__main__":
+    # img = cv2.imread("ros_turtle.jpg")
+    # cv2.imshow("image",img)
     main()
